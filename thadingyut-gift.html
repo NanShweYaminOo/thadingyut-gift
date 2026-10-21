@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="my">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>သီတင်းကျွတ် လက်ဆောင်</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg1:#fff4dc;--bg2:#ffc98a;--ink:#4a2200;--card:#fffffff0;--box:#d62d20;--boxd:#a91d14;--rib:#ffc928;--glow:#ff9d2e;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg1:#1a1040;--bg2:#3b1860;--ink:#fff0cf;--card:#2b1a55f0}}
+:root[data-theme="dark"]{--bg1:#1a1040;--bg2:#3b1860;--ink:#fff0cf;--card:#2b1a55f0}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:"Noto Sans Myanmar","Padauk","Myanmar Text",sans-serif;color:var(--ink);background:radial-gradient(ellipse at 50% 100%,var(--bg2),var(--bg1) 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;overflow:hidden;text-align:center;padding:16px}
+h1{font-size:clamp(22px,6vw,34px);margin:0;line-height:1.6}
+p{margin:0;line-height:1.8}
+.hint{font-size:16px;opacity:.85}
+.lamp{position:fixed;font-size:30px;animation:fl 6s ease-in-out infinite;filter:drop-shadow(0 0 10px var(--glow));pointer-events:none}
+@keyframes fl{50%{transform:translateY(-16px)}}
+.stage{position:relative;width:200px;height:200px;cursor:pointer;-webkit-tap-highlight-color:transparent;border:0;background:none;padding:0}
+.base{position:absolute;left:20px;right:20px;bottom:0;height:120px;background:var(--box);border-radius:6px 6px 12px 12px;box-shadow:0 10px 30px #0006}
+.base:before,.lid:before{content:"";position:absolute;left:50%;width:34px;margin-left:-17px;top:0;bottom:0;background:var(--rib)}
+.lid{position:absolute;left:10px;right:10px;bottom:112px;height:44px;background:var(--boxd);border-radius:8px;transform-origin:left bottom;transition:transform .6s cubic-bezier(.3,1.6,.5,1)}
+.bow{position:absolute;left:50%;top:-26px;margin-left:-26px;font-size:44px;line-height:1}
+.open .lid{transform:translate(-30px,-60px) rotate(-28deg)}
+.shake{animation:sh .35s}
+@keyframes sh{20%{transform:rotate(-6deg)}40%{transform:rotate(6deg)}60%{transform:rotate(-4deg)}80%{transform:rotate(4deg)}}
+.prize{position:absolute;left:0;right:0;top:40px;font-size:80px;opacity:0;transform:scale(.2);transition:all .5s .25s cubic-bezier(.3,1.7,.5,1)}
+.open .prize{opacity:1;transform:translateY(-50px) scale(1)}
+.card{max-width:340px;background:var(--card);border-radius:16px;padding:14px 20px;box-shadow:0 8px 28px #0004;opacity:0;transform:translateY(12px);transition:.4s;visibility:hidden}
+.card.show{opacity:1;transform:none;visibility:visible}
+.card b{display:block;font-size:22px}
+button.again{font:inherit;font-size:16px;margin-top:8px;padding:8px 18px;border-radius:20px;border:2px solid var(--glow);background:transparent;color:inherit;cursor:pointer}
+canvas{position:fixed;inset:0;pointer-events:none;z-index:5}
+@media (prefers-reduced-motion:reduce){.lamp,.shake{animation:none}}
+</style>
+</head>
+<body>
+<span class="lamp" style="left:8%;top:10%">🏮</span><span class="lamp" style="right:9%;top:16%;animation-delay:-2s">🏮</span><span class="lamp" style="left:14%;bottom:12%;animation-delay:-4s">🪔</span><span class="lamp" style="right:12%;bottom:9%;animation-delay:-1s">🪔</span>
+<h1>သီတင်းကျွတ်ပွဲတော် မင်္ဂလာရှိပါစေ 🎉</h1>
+<p class="hint" id="hint">လက်ဆောင်သေတ္တာလေးကို ထိကြည့်ပါ</p>
+<button class="stage" id="stage" aria-label="လက်ဆောင်သေတ္တာကို ဖွင့်ရန်">
+  <div class="prize" id="prize">🎁</div>
+  <div class="base"></div>
+  <div class="lid"><span class="bow">🎀</span></div>
+</button>
+<div class="card" id="card"><b id="gname"></b><p>သီတင်းကျွတ်လက်ဆောင်အဖြစ် ပေးလိုက်ပါတယ်။ ပျော်ရွှင်ပါစေ။</p><button class="again" id="again">နောက်တစ်ခါ ထပ်ဖွင့်မယ်</button></div>
+<canvas id="cv"></canvas>
+<script>
+var gifts=[["👕","အဝတ်အစားအသစ်"],["📱","ဖုန်းအသစ်တစ်လုံး"],["📞","ဖုန်းဘေလ်ဖြည့်ကဒ်"],["🎧","နားကြပ်"],["👟","ဖိနပ်အသစ်"],["🍰","ကိတ်မုန့်"]];
+var stage=document.getElementById("stage"),prize=document.getElementById("prize"),card=document.getElementById("card"),gname=document.getElementById("gname"),hint=document.getElementById("hint");
+var opened=false,busy=false,ac=null;
+function sound(){
+  try{
+    ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+    if(ac.state==="suspended")ac.resume();
+    var t0=ac.currentTime;
+    var nb=ac.createBuffer(1,ac.sampleRate*.25,ac.sampleRate),d=nb.getChannelData(0);
+    for(var i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3);
+    var ns=ac.createBufferSource(),ng=ac.createGain();ns.buffer=nb;ng.gain.value=.5;ns.connect(ng);ng.connect(ac.destination);ns.start(t0);
+    [523.25,659.25,783.99,1046.5,1318.5,1568].forEach(function(f,i){
+      var o=ac.createOscillator(),g=ac.createGain(),t=t0+.12+i*.09;
+      o.type="triangle";o.frequency.value=f;
+      g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.25,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.6);
+      o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.65);
+    });
+  }catch(e){}
+}
+var cv=document.getElementById("cv"),cx=cv.getContext("2d"),ps=[],run=false,dpr=Math.min(window.devicePixelRatio||1,2);
+function size(){cv.width=innerWidth*dpr;cv.height=innerHeight*dpr}
+size();addEventListener("resize",size);
+var cols=["#ff4d4d","#ffc928","#4dd2ff","#7dff6b","#ff7ad9","#ffffff","#ff9d2e"];
+function burst(){
+  var ox=innerWidth/2,oy=innerHeight*.5;
+  for(var i=0;i<150;i++){var a=Math.random()*Math.PI*2,s=4+Math.random()*10;
+    ps.push({x:ox,y:oy,vx:Math.cos(a)*s,vy:Math.sin(a)*s-7,w:6+Math.random()*7,h:4+Math.random()*5,r:Math.random()*6,vr:(Math.random()-.5)*.4,c:cols[i%cols.length],l:1});}
+  if(!run){run=true;requestAnimationFrame(tick)}
+}
+function tick(){
+  cx.setTransform(1,0,0,1,0,0);cx.clearRect(0,0,cv.width,cv.height);cx.scale(dpr,dpr);
+  ps=ps.filter(function(p){return p.l>0&&p.y<innerHeight+20});
+  ps.forEach(function(p){p.vy+=.28;p.vx*=.99;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;p.l-=.006;
+    cx.save();cx.globalAlpha=Math.max(p.l,0);cx.translate(p.x,p.y);cx.rotate(p.r);cx.fillStyle=p.c;cx.fillRect(-p.w/2,-p.h/2,p.w,p.h);cx.restore();});
+  if(ps.length)requestAnimationFrame(tick);else{run=false;cx.setTransform(1,0,0,1,0,0);cx.clearRect(0,0,cv.width,cv.height)}
+}
+function openBox(){
+  if(opened||busy)return;busy=true;
+  var g=gifts[Math.floor(Math.random()*gifts.length)];
+  prize.textContent=g[0];gname.textContent="သင့်လက်ဆောင်: "+g[1];
+  stage.classList.add("shake");
+  setTimeout(function(){
+    stage.classList.remove("shake");stage.classList.add("open");
+    sound();burst();setTimeout(burst,350);
+    card.classList.add("show");hint.textContent="🎉 ဂုဏ်ယူပါတယ် 🎉";
+    opened=true;busy=false;
+  },380);
+}
+stage.addEventListener("click",openBox);
+document.getElementById("again").addEventListener("click",function(){
+  stage.classList.remove("open");card.classList.remove("show");hint.textContent="လက်ဆောင်သေတ္တာလေးကို ထိကြည့်ပါ";
+  prize.textContent="🎁";opened=false;
+});
+</script>
+</body>
+</html>
